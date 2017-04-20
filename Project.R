@@ -12,8 +12,6 @@ library(e1071)
 
 HR_comma_sep <- read.csv("C:/Users/vasir/Downloads/HR_comma_sep.csv")
 HR_comma_sep<-data.frame(HR_comma_sep)
-HR_Comma<-HR_comma_sep[,-7]
-HR_Comma['left']<-HR_Comma[,7]
 
 #2.Renaming the variables names
 colnames(HR_comma_sep)[9]<-"Department"
@@ -28,22 +26,19 @@ sum(is.na(HR_comma_sep))
 
 #8.Finding the distribution for numeric variables
 par(mfrow=c(3,3))
-for(i in 2:8){hist(HR_Comma[,i],xlab=names(HR_Comma)[i])}
-
-#9.Box plots for categorical variables
-
+for(i in 2:6){hist(HR_comma_sep[,i],xlab=names(HR_comma_sep)[i])}
 
 #1.Coventing the variables to proper data type
-HR_Comma$left=as.factor(HR_Comma$left)
-HR_Comma$salary<-as.factor(HR_Comma$salary)
-HR_Comma$Work_accident<-as.factor(HR_Comma$Work_accident)
-HR_Comma$Department<-as.factor(HR_Comma$Department)
-HR_Comma$promotion_last_5years<-as.factor(HR_Comma$promotion_last_5years)
+HR_comma_sep$left=as.factor(HR_comma_sep$left)
+HR_comma_sep$salary<-as.factor(HR_comma_sep$salary)
+HR_comma_sep$Work_accident<-as.factor(HR_comma_sep$Work_accident)
+HR_comma_sep$Department<-as.factor(HR_comma_sep$Department)
+HR_comma_sep$promotion_last_5years<-as.factor(HR_comma_sep$promotion_last_5years)
 #2 converting the salary to ordinal variable
 HR_Comma$salary<-ordered(HR_Comma$salary,levels=c("low","medium","high"))
 
 #15. finding the descriptive statistics
-summary(HR_Comma)
+summary(HR_comma_sep)
 
 #4.finding distributions for variables
 ggplot(HR_comma_sep,aes(x=salary,y=satisfaction_level,fill=factor(left),colour=factor(left)))+geom_boxplot(outlier.colour = "black")+xlab("salary")+ylab("Satisfaction Level")
@@ -58,14 +53,8 @@ corrplot(cor_matrix,method = 'number')
 HR_Corr<-HR_comma_sep %>% select(satisfaction_level:promotion_last_5years)
 
 
-
-
-
-# dmf<-dummyVars(~sales,data=HR_Comma)
-# trsf<-predict(dmf,newdata = HR_Comma)
-
 #Cp model
-model.mat<-model.matrix(left~satisfaction_level+last_evaluation+number_project+average_montly_hours+time_spend_company+Work_accident+promotion_last_5years+Department+salary,data=HR_Comma)
+model.mat<-model.matrix(left~satisfaction_level+last_evaluation+number_project+average_montly_hours+time_spend_company+Work_accident+promotion_last_5years+Department+salary,data=HR_comma_sep)
 sb<-leaps(x=model.mat[,2:19],y=HR_comma_sep[,7],method = 'Cp')
 plot(sb$size,sb$Cp,pch=19)
 sb$which[which(sb$Cp==min(sb$Cp)),]
@@ -87,13 +76,11 @@ YVars<-HR_comma_sep[,7]
 fit.lasso<-lars(x=as.matrix(model.mat[,2:19]),y=as.matrix(YVars),type = 'lasso')
 plot(fit.lasso)
 
-#model.mat[,2:19]
-
 #Exploration in Data
 
 #Number of projects and average monthly hours are correlated. So find average time for spending time on single project
 
-#creating new column
+#creating new column for finding the effecient employees
 HR_comma_sep['avg_hr_prj']<-(HR_comma_sep['average_montly_hours'] * 12)/HR_comma_sep['number_project']
 
 #Dividing the variable into 3 parts
@@ -113,7 +100,8 @@ ggplot(HR_comma_sep,aes(sales))+geom_bar(aes(fill=factor(time_spend_company)),po
 #More number of employee from Management and sales are spending more than 8 years in the company compared to other departments. So we cannot
 #remove outliers.
 
-# There are few outliers in the data set. So we acnnotignore these observations because more
+# There are few outliers in the data set. So we cannotignore these observations because employees who are spending more than
+#8 years in the company are from sales and management. As 'sales' and 'management' are playing important role in this comapnay.
 dropdata<-subset(HR_comma_sep,time_spend_company<8)
 HR_comma_sep1<-dropdata
 
@@ -165,16 +153,11 @@ for (i in (1: nrow(HR_comma_sep))){
   }   
 }
 
-#Define premature exit
-
-
-
-
 #finding the number of employees in each department
 lev<-levels(as.factor(HR_comma_sep$sales))
 for(i in (1:length(lev))){
       lev[i]<-sum(grepl(lev[i],HR_comma_sep$sales))
-   }
+}
 lev_list['Department']<-as.data.frame(levels(as.factor(HR_comma_sep$sales)))
 lev_list['number_of_employees']<-lev
 
